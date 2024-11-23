@@ -1,0 +1,34 @@
+# Function to check if a reboot is pending
+function IsRebootPending {
+    # Check various indicators of pending reboots
+    $pendingRebootKeys = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired",
+        "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\PendingFileRenameOperations"
+    )
+    
+    foreach ($key in $pendingRebootKeys) {
+        if (Test-Path $key) {
+            Write-Host "Reboot is pending: Found key - $key"
+            return $true
+        }
+    }
+
+    # Check WMI for reboot pending state
+    $pending = Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty RebootPending -ErrorAction SilentlyContinue
+    if ($pending -eq $true) {
+        Write-Host "Reboot is pending: WMI reports a reboot is required."
+        return $true
+    }
+
+    # No reboot pending
+    Write-Host "No reboot is pending."
+    return $false
+}
+
+# Test the function
+if (IsRebootPending) {
+    Write-Host "A reboot is required on this system."
+} else {
+    Write-Host "No reboot is required on this system."
+}
